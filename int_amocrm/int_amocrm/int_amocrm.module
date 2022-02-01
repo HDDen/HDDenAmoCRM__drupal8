@@ -1,0 +1,148 @@
+<?php
+require_once 'inc/HDDenAmoUtils.inc';
+require_once 'inc/HDDenLogger.inc';
+require_once 'inc/HDDenDrupalSnippets.inc';
+require_once 'amo/create_lead.php';
+
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_form_alter().
+ * Цепляемся к формам сайта
+ */
+function int_amocrm_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id) {
+
+  $amocrm_forms = array(
+    'contact_message_questionmodal_form', // "contact_message_" . name . "_form"
+    'contact_message_callbackform_form',
+    'contact_message_questionform_form',
+    'contact_message_projectmodal_form',
+    'contact_message_serviceform_form',
+    'contact_message_priceform_form',
+  );
+
+  if (in_array($form_id, $amocrm_forms)){
+    $form['actions']['submit']['#submit'][] = 'int_amocrm_submitCbk';
+  }
+}
+
+/**
+ * Custom submit callback.
+ * Подвязываем действие к форме
+ */
+function int_amocrm_submitCbk(&$form, \Drupal\Core\Form\FormStateInterface $form_state) {
+
+  // creating amoutils instance
+  $amoUtils = new HDDenAmoUtils();
+
+  // Получаем значения
+  $values = $form_state->getValues();
+
+  // Фиксируем id
+  $form_id = $form['#form_id'];
+
+  // Нужно сопоставить поля в $values полям в передаваемом массиве.
+  $formsArray = array(
+    // 'id' => array('field' => 'pseudoname'),
+    'contact_message_questionmodal_form' => [
+      'name' => 'name',
+      'phone' => 'field_phone',
+    ],
+    'contact_message_callbackform_form' => [
+      'name' => 'name',
+      'phone' => 'field_phone',
+    ],
+    'contact_message_questionform_form' => [
+      'name' => 'name',
+      'phone' => 'field_phone',
+    ],
+    'contact_message_projectmodal_form' => [
+      'name' => 'name',
+      'phone' => 'field_phone',
+      'email' => 'mail',
+      'files' => 'field_attachment',
+      'message' => array(
+        'field_attachment'
+      ),
+    ],
+    'contact_message_serviceform_form' => [
+      'name' => 'name',
+      'phone' => 'field_phone',
+      'email' => 'mail',
+      'files' => 'field_attachment',
+      'message' => array(
+        'field_attachment'
+      ),
+    ],
+    'contact_message_priceform_form' => [
+      'name' => 'name',
+      'phone' => 'field_phone',
+      'email' => 'mail',
+      'files' => 'field_attachment',
+      'message' => array(
+        'field_attachment'
+      ),
+    ],
+  );
+
+
+  // Проверяем, размечена ли полученная форма
+  if (array_key_exists($form_id, $formsArray) && !empty($values)){
+
+    // обходим только размеченные поля
+    foreach ($formsArray[$form_id] as $amoFieldName => $formFieldName){
+
+      // поддержка составных полей
+      if (is_array($formFieldName)){
+        // запускаем цикл по компонентам составного поля - обходим каждое перечисленное
+        foreach ($formFieldName as $part_name){
+          if (array_key_exists($part_name, $values)){
+            // Значение может быть как в виде строки, так и массивом.
+            $val = $amoUtils->parseValue($values[$part_name]);
+            $amoUtils->setField($amoFieldName, $val, true);
+          }
+        }
+      } else {
+        if (array_key_exists($formFieldName, $values)){
+          // Значение может быть как в виде строки, так и массивом.
+          $val = $amoUtils->parseValue($values[$formFieldName]);
+          $amoUtils->setField($amoFieldName, $val);
+        }
+      }
+    }
+
+    // Допишем в $message имя формы
+    if (isset($formsArray[$form_id]['formName'])){
+      $amoUtils->setMessage('Форма: ' . $formsArray[$form_id]['formName'], true);
+    }
+
+  } else if (!empty($values)) {
+    // форма не распознана, соберем всё в $message
+    $message = 'Форма не распознана, полученные значения:'.PHP_EOL.PHP_EOL;
+    foreach ($values as $values_index => $values_data){
+      $message .= "['$values_index'] = ".$amoUtils->parseValue($values_data).PHP_EOL;
+    }
+    $message .= 'Форма "'.$form_id.'"'.PHP_EOL;
+
+    // устанавливаем поле
+    $amoUtils->setMessage($message);
+
+    // пытаемся найти телефон
+    if (isset($values['field_phone'])){
+      $phone = $amoUtils->parseValue($values['field_phone']);
+    } else if (isset($values['phone'])){
+      $phone = $amoUtils->parseValue($values['phone']);
+    }
+    if ($phone){
+      $amoUtils->setPhone($phone);
+    } else {
+      $amoUtils->setEmail(time().'@'.$_SERVER['SERVER_NAME']);
+    }
+  }
+
+  // если нужно, устанавливаем имя сайта (например, кириллица не переводится)
+  $amoUtils->setField('sitename', 'inte9ration.ru');
+
+  // здесь отправка
+  $result = $amoUtils->send();
+}
