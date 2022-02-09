@@ -1,0 +1,174 @@
+<?php
+
+require_once 'inc/HDDenAmoUtils.inc';
+require_once 'inc/HDDenLogger.inc';
+require_once 'inc/HDDenDrupalSnippets.inc';
+require_once 'amo/create_lead.php';
+
+/**
+ * @param $node
+ * @param $submission
+ */
+function amowebform_webform_submission_insert($node, $submission){
+
+  // демо-режим
+  $demo = false;
+
+  // проверка доступности логгера
+  if (class_exists(HDDenLogger::class)){
+    $log = new HDDenLogger();
+  } else {
+    $log = false;
+  }
+
+  // creating amoutils instance
+  $amoUtils = new HDDenAmoUtils();
+
+  // Получаем значения
+  $values = $submission->data;
+
+  // Фиксируем id
+  $form_id = $submission->nid;
+
+  // Нужно сопоставить поля в $values полям в передаваемом массиве.
+  $formsArray = array(
+    // 'id' => array('field' => 'pseudoname'),
+    //'message' => '', или если из нескольких полей, то массив
+    //'message' => array('field1', 'field2', ..., 'field_n'),
+    '11' => [
+      'name' => '1',
+      'phone' => '2',
+      'email' => '3',
+      'message' => '4',
+      'formName' => 'Есть вопросы?',
+    ],
+    '50' => [
+      'name' => '1',
+      'phone' => '2',
+      'formName' => 'Заказать звонок',
+    ],
+    '52' => [
+      'name' => '1',
+      'phone' => '3',
+      'email' => '2',
+      'message' => '4',
+      'formName' => 'Задать вопрос',
+    ],
+    '374' => [
+      'name' => '1',
+      'phone' => '2',
+      'message' => '3',
+      'formName' => 'Заказать звонок (товар)',
+    ],
+    '375' => [
+      'name' => '1',
+      'phone' => '2',
+      'email' => '3',
+      'message' => ['4','5'],
+      'formName' => 'Загрузить смету',
+    ],
+  );
+
+  $blocked = array('373'); // отсюда не будет ничего приходить
+
+  // проверяем, не заблокирована ли форма
+  if (in_array($form_id, $blocked)){
+    $log ? $log->write('Main: обращение из заблокированной формы id'.$form_id.': '.print_r($submission, true)) : null ;
+    return true;
+  } else {
+    $log ? $log->write('Main: получено обращение: '.print_r($submission, true)) : null ;
+  }
+
+  // Проверяем, размечена ли полученная форма
+  if (array_key_exists($form_id, $formsArray) && !empty($values)){
+
+    // обходим только размеченные поля
+    foreach ($formsArray[$form_id] as $amoFieldName => $formFieldName){
+
+      // поддержка составных полей
+      if (is_array($formFieldName)){
+        // запускаем цикл по компонентам составного поля - обходим каждое перечисленное
+        foreach ($formFieldName as $part_name){
+          if (array_key_exists($part_name, $values) || isset($values[$part_name])){ // второе - для поддержки drupal 7, где доступ по порядковому номеру а не по ключу
+            // Значение может быть как в виде строки, так и массивом.
+
+            // В drupal 7 если мы передавали файл, мы никак его не вычислим, исходя только из значения поля.
+            // Но в $submission передастся массив ['file_usage']['added_fids'][...], в котором перечислены id добавленных файлов.
+            // если значение поля внезапно есть в этом массиве - был передан id файла, и нужно попытаться получить ссылку на него.
+            $drupal7_tryfield = false; // дефолт
+            if (isset($submission->file_usage) && isset($submission->file_usage['added_fids']) && !empty($submission->file_usage['added_fids'])){
+              if (is_array($values[$part_name])
+                  && (count($values[$part_name]) === 1)
+                  && in_array($values[$part_name][0], $submission->file_usage['added_fids']))
+              {
+                $drupal7_tryfield = 'd7_file';
+              }
+            }
+
+            $val = $amoUtils->parseValue($values[$part_name], $drupal7_tryfield);
+            $amoUtils->setField($amoFieldName, $val, true);
+          }
+        }
+      } else {
+        if (array_key_exists($formFieldName, $values) || isset($values[$part_name])){ // второе - для поддержки drupal 7, где доступ по порядковому номеру а не по ключу
+          // Значение может быть как в виде строки, так и массивом.
+
+          // скопированный выше способ детекта загрузки файла для Drupal 7
+          $drupal7_tryfield = false; // дефолт
+          if (isset($submission->file_usage) && isset($submission->file_usage['added_fids']) && !empty($submission->file_usage['added_fids'])){
+            if (is_array($values[$part_name])
+              && (count($values[$part_name]) === 1)
+              && in_array($values[$part_name][0], $submission->file_usage['added_fids']))
+            {
+              $drupal7_tryfield = 'd7_file';
+            }
+          }
+
+          $val = $amoUtils->parseValue($values[$formFieldName], $drupal7_tryfield);
+          $amoUtils->setField($amoFieldName, $val);
+        }
+      }
+    }
+
+    // Допишем в $message имя формы
+    if (isset($formsArray[$form_id]['formName'])){
+      $amoUtils->setMessage('Форма: ' . $formsArray[$form_id]['formName'], true);
+    }
+
+  } else if (!empty($values)) {
+    // форма не распознана, соберем всё в $message
+    $log ? $log->write('Main: форма не опознана, полученные значения: '.PHP_EOL.print_r($submission, true)) : null ;
+
+    $message = 'Форма не распознана, полученные значения:'.PHP_EOL.PHP_EOL;
+    foreach ($values as $values_index => $values_data){
+      $message .= "['$values_index'] = ".$amoUtils->parseValue($values_data).PHP_EOL;
+    }
+    $message .= 'Форма "'.$form_id.'"'.PHP_EOL;
+
+    // устанавливаем поле
+    $amoUtils->setMessage($message);
+
+    // пытаемся найти телефон
+    if (isset($values['field_phone'])){
+      $phone = $amoUtils->parseValue($values['field_phone']);
+    } else if (isset($values['phone'])){
+      $phone = $amoUtils->parseValue($values['phone']);
+    }
+    if ($phone){
+      $amoUtils->setPhone($phone);
+    } else {
+      $amoUtils->setEmail(time().'@'.$_SERVER['SERVER_NAME']);
+    }
+  }
+
+  // если нужно, устанавливаем имя сайта (например, кириллица не переводится)
+  //$amoUtils->setField('sitename', 'lepart.su');
+
+  // здесь отправка
+  if (!$demo){
+    $result = $amoUtils->send();
+    $log ? $log->write('Main: результат отправки: '.var_export($result, true)) : null ;
+  } else {
+    $log ? $log->write('Main: установлен демо-режим, дошли до отправки но не стали') : null ;
+  }
+}

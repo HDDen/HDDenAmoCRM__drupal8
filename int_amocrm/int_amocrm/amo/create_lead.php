@@ -33,8 +33,6 @@ use AmoCRM\Collections\TagsCollection;
 use AmoCRM\Models\TagModel;
 use AmoCRM\Models\CustomFields\TextCustomFieldModel;
 
-use HDDenLogger;
-
 class amoCRM
 {
   private $log;
@@ -56,9 +54,10 @@ class amoCRM
     $leadName = $lead_data['LEAD_NAME'];
     $tag_lead_raw = $lead_data['TAG'] ? $lead_data['TAG'] : array();
     $tag_contact_raw = $lead_data['TAG_CONTACT'] ? $lead_data['TAG_CONTACT'] : array();
+    $sitename = $lead_data['SITENAME'] ? $lead_data['SITENAME'] : $_SERVER['SERVER_NAME'];
     //$city = $lead_data['CITY'];
     $companyName = $lead_data['COMPANY'] ? $lead_data['COMPANY'] : '';
-    $files = $lead_data['FILES'] ? $lead_data['FILES'] : '';
+    $files = false;//$files = $lead_data['FILES'] ? $lead_data['FILES'] : '';
 
 
     // Первый шаг - получаем токен. После авторизации можно делать остальное
@@ -177,7 +176,8 @@ class amoCRM
     // Создаём контакт
     $this->log ? $this->log->write('Создаём контакт') : false;
     try {
-      $contacts = $apiClient->contacts()->get((new ContactsFilter())->setQuery($phone));
+      $query_str = $phone ? $phone : $email;
+      $contacts = $apiClient->contacts()->get((new ContactsFilter())->setQuery($query_str));
       $contact = $contacts[0];
     } catch(AmoCRMApiException $e) {
       $contact = new ContactModel();
@@ -225,11 +225,11 @@ class amoCRM
     //Создадим модель значений поля типа текст
     $srcField_textCustomFieldValuesModel = new TextCustomFieldValuesModel();
     //Укажем ID поля
-    $srcField_textCustomFieldValuesModel->setFieldId(976487);
+    $srcField_textCustomFieldValuesModel->setFieldId(703331);
     //Добавим значения
     $srcField_textCustomFieldValuesModel->setValues(
       (new TextCustomFieldValueCollection())
-        ->add((new TextCustomFieldValueModel())->setValue($_SERVER['SERVER_NAME']))
+        ->add((new TextCustomFieldValueModel())->setValue($sitename))
     );
     //Добавим значение в коллекцию полей сущности
     $CustomFieldsValues->add($srcField_textCustomFieldValuesModel);
@@ -237,7 +237,7 @@ class amoCRM
     /**
      * Прикреплён файл
      */
-    if ($files){
+    /*if ($files){
       $filesField_textCustomFieldValuesModel = new TextCustomFieldValuesModel();
       $filesField_textCustomFieldValuesModel->setFieldId(976483); // ID поля
       $filesField_textCustomFieldValuesModel->setValues(
@@ -245,7 +245,7 @@ class amoCRM
           ->add((new TextCustomFieldValueModel())->setValue($files))
       );
       $CustomFieldsValues->add($filesField_textCustomFieldValuesModel);
-    }
+    }*/
 
 
     // Установим сущности ВСЕ собранные поля РАЗОМ

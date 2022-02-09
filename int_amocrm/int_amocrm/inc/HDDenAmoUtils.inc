@@ -169,10 +169,11 @@ class HDDenAmoUtils {
   /**
    * Преобразовывает переменную в строку
    * @param $data
+   * @param $type - false or string ('file')
    *
    * @return string
    */
-  public function parseValue($data){
+  public function parseValue($data, $type = false){
     $result = '';
 
     // если был передан массив, собираем все значения в строку
@@ -184,7 +185,24 @@ class HDDenAmoUtils {
         if ( (count($data) === 1) ){
 
           // $data[0]['value'] = '...';
-          if (isset($data[0]['value'])){
+          if (!is_array($data[0])){
+            // Значение прячется в самом нулевом элементе массива.
+            // Здесь надо проверить - если это id файла, полученного через Drupal 7,
+            // должно было быть передано указание проверить тип
+            if ($type === 'd7_file'){
+              // пытаемся построить ссылку
+
+              // если подключен класс со сниппетами к друпалу
+              if (class_exists(HDDenDrupalSnippets::class)){
+                $file_uri = \HDDenDrupalSnippets::getFileLink($data[0], true);
+                $result .= $file_uri;
+              }
+
+            } else {
+              $result .= $data[0];
+            }
+
+          } else if (isset($data[0]['value'])){
             $result .= $data[0]['value'];
           } else if ( isset($data[0]['fids']) && !empty($data[0]['fids']) ){ // файлы
 
@@ -248,6 +266,10 @@ class HDDenAmoUtils {
     return array_keys($arr) !== range(0, count($arr) - 1);
   }
 
+  /**
+   * Отправляет данные в AmoCRM
+   * @return bool
+   */
   public function send(){
     if ($this->log){
       $this->log->write($this->formData);
@@ -287,6 +309,7 @@ class HDDenAmoUtils {
       'LEAD_NAME' => $leadName, // название сделки
       'TAG' => $leadTag,
       'TAG_CONTACT' => $contactTag,
+      'SITENAME' => $this->sitename,
     );
 
     // Отправляем
