@@ -54,6 +54,13 @@ function amowebform_webform_submission_insert($node, $submission){
       'message' => '4',
       'formName' => 'Задать вопрос',
     ],
+    '373' => [
+      'name' => '1',
+      'message' => ['2','4'],
+      'email' => '3',
+      'tags' => ['lead'=>['Отзыв'], 'contact'=>['Отзыв']],
+      'formName' => 'Отзыв',
+    ],
     '374' => [
       'name' => '1',
       'phone' => '2',
@@ -69,7 +76,7 @@ function amowebform_webform_submission_insert($node, $submission){
     ],
   );
 
-  $blocked = array('373'); // отсюда не будет ничего приходить
+  $blocked = array('9999'); // отсюда не будет ничего приходить
 
   // проверяем, не заблокирована ли форма
   if (in_array($form_id, $blocked)){
@@ -84,6 +91,20 @@ function amowebform_webform_submission_insert($node, $submission){
 
     // обходим только размеченные поля
     foreach ($formsArray[$form_id] as $amoFieldName => $formFieldName){
+
+      // проверка на массив тегов
+      if ($amoFieldName == 'tags'){
+        // теги сделки
+        if (isset($formFieldName['lead'])){
+          $amoUtils->addLeadTags($formFieldName['lead']);
+        }
+        // теги контакта
+        if (isset($formFieldName['contact'])) {
+          $amoUtils->addLeadTags($formFieldName['contact']);
+        }
+        // переходим к следующему полю
+        continue;
+      }
 
       // поддержка составных полей
       if (is_array($formFieldName)){

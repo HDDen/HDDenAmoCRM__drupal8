@@ -7,6 +7,8 @@ class HDDenAmoUtils {
   private $sitename;
   private $datetime;
   private $log;
+  private $leadTags = array();
+  private $contactTags = array();
 
   public function __construct($formData = false) {
     // проверка доступности логгера
@@ -128,6 +130,21 @@ class HDDenAmoUtils {
     } else {
       $this->formData[$fieldName] = $value;
     }
+  }
+
+  /**
+   * Добавляет теги к сделке
+   * @param array $tags
+   */
+  public function addLeadTags(array $tags){
+    $this->leadTags = $tags;
+  }
+  /**
+   * Добавляет теги к контакту
+   * @param array $tags
+   */
+  public function addContactTags(array $tags){
+    $this->contactTags = $tags;
   }
 
 
@@ -288,8 +305,8 @@ class HDDenAmoUtils {
     $leadName = $this->formData['name_uniqueized'];
 
     // Теги
-    $leadTag = array( ''.$this->sitename );
-    $contactTag = array( 'Контакт из '.$this->sitename );
+    $leadTag = array_merge(array( ''.$this->sitename ), $this->leadTags);
+    $contactTag = array_merge(array( 'Контакт из '.$this->sitename ), $this->contactTags);
 
     // Собираем массив
 

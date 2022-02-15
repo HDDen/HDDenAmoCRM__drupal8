@@ -70,6 +70,7 @@ function int_amocrm_submitCbk(&$form, \Drupal\Core\Form\FormStateInterface $form
       'phone' => 'field_phone',
       'email' => 'mail',
       'files' => 'field_attachment',
+      'tags' => ['lead'=>['Отзыв'], 'contact'=>['Отзыв']],
       'message' => array(
         'field_attachment'
       ),
@@ -85,12 +86,35 @@ function int_amocrm_submitCbk(&$form, \Drupal\Core\Form\FormStateInterface $form
     ],
   );
 
+  $blocked = array('contact_message_spamform_form'); // отсюда не будет ничего приходить
+
+  // проверяем, не заблокирована ли форма
+  if (in_array($form_id, $blocked)){
+    $log ? $log->write('Main: обращение из заблокированной формы id'.$form_id.': '.print_r($submission, true)) : null ;
+    return true;
+  } else {
+    $log ? $log->write('Main: получено обращение: '.print_r($submission, true)) : null ;
+  }
 
   // Проверяем, размечена ли полученная форма
   if (array_key_exists($form_id, $formsArray) && !empty($values)){
 
     // обходим только размеченные поля
     foreach ($formsArray[$form_id] as $amoFieldName => $formFieldName){
+
+      // проверка на массив тегов
+      if ($amoFieldName == 'tags'){
+        // теги сделки
+        if (isset($formFieldName['lead'])){
+          $amoUtils->addLeadTags($formFieldName['lead']);
+        }
+        // теги контакта
+        if (isset($formFieldName['contact'])) {
+          $amoUtils->addLeadTags($formFieldName['contact']);
+        }
+        // переходим к следующему полю
+        continue;
+      }
 
       // поддержка составных полей
       if (is_array($formFieldName)){
