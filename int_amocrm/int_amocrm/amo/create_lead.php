@@ -58,6 +58,8 @@ class amoCRM
     //$city = $lead_data['CITY'];
     $companyName = $lead_data['COMPANY'] ? $lead_data['COMPANY'] : '';
     $files = false;//$files = $lead_data['FILES'] ? $lead_data['FILES'] : '';
+    $src = $lead_data['SRC'] ? $lead_data['SRC'] : '';
+    $pipeline = $lead_data['pipelineId'] ? $lead_data['pipelineId'] : false;
 
 
     // Первый шаг - получаем токен. После авторизации можно делать остальное
@@ -222,17 +224,36 @@ class amoCRM
     /* *
      * Адрес сайта
      * */
-    //Создадим модель значений поля типа текст
-    $srcField_textCustomFieldValuesModel = new TextCustomFieldValuesModel();
-    //Укажем ID поля
-    $srcField_textCustomFieldValuesModel->setFieldId(703331);
-    //Добавим значения
-    $srcField_textCustomFieldValuesModel->setValues(
-      (new TextCustomFieldValueCollection())
-        ->add((new TextCustomFieldValueModel())->setValue($sitename))
-    );
-    //Добавим значение в коллекцию полей сущности
-    $CustomFieldsValues->add($srcField_textCustomFieldValuesModel);
+    if ($sitename){
+      //Создадим модель значений поля типа текст
+      $srcField_textCustomFieldValuesModel = new TextCustomFieldValuesModel();
+      //Укажем ID поля
+      $srcField_textCustomFieldValuesModel->setFieldId(413083);
+      //Добавим значения
+      $srcField_textCustomFieldValuesModel->setValues(
+        (new TextCustomFieldValueCollection())
+          ->add((new TextCustomFieldValueModel())->setValue($sitename))
+      );
+      //Добавим значение в коллекцию полей сущности
+      $CustomFieldsValues->add($srcField_textCustomFieldValuesModel);
+    }
+
+    /* *
+     * Страница обращения
+     * */
+    if ($src){
+      //Создадим модель значений поля типа текст
+      $srcField_textCustomFieldValuesModel = new TextCustomFieldValuesModel();
+      //Укажем ID поля
+      $srcField_textCustomFieldValuesModel->setFieldId(381167);
+      //Добавим значения
+      $srcField_textCustomFieldValuesModel->setValues(
+        (new TextCustomFieldValueCollection())
+          ->add((new TextCustomFieldValueModel())->setValue($src))
+      );
+      //Добавим значение в коллекцию полей сущности
+      $CustomFieldsValues->add($srcField_textCustomFieldValuesModel);
+    }
 
     /**
      * Прикреплён файл
@@ -256,6 +277,12 @@ class amoCRM
     // Назначим теги лиду
     $this->log ? $this->log->write('Назначаем теги лиду') : false;
     if (isset($tagsCollection_lead)) $lead->setTags($tagsCollection_lead);
+
+    // Назначим воронку лиду
+    if (isset($pipeline)){
+      $this->log ? $this->log->write('Назначаем воронку лиду') : false;
+      $lead->setPipelineId($pipeline);
+    }
 
     // Сборка и отправка
     $leadsCollection = new LeadsCollection();

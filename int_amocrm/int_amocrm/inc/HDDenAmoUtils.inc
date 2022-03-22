@@ -133,6 +133,14 @@ class HDDenAmoUtils {
   }
 
   /**
+   * Устанавливает ID воронки
+   * @param $id
+   */
+  public function setPipelineId(int $id){
+    $this->formData['pipelineId'] = $id;
+  }
+
+  /**
    * Добавляет теги к сделке
    * @param array $tags
    */
@@ -327,7 +335,13 @@ class HDDenAmoUtils {
       'TAG' => $leadTag,
       'TAG_CONTACT' => $contactTag,
       'SITENAME' => $this->sitename,
+      'SRC' => @$this->formData['src'],
     );
+
+    // id воронки
+    if (isset($this->formData['pipelineId']) && $this->formData['pipelineId']){
+      $amo_array['pipelineId'] = $this->formData['pipelineId'];
+    }
 
     // Отправляем
     $amoCrm = new AmoCRM();
