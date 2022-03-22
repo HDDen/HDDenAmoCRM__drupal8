@@ -9,7 +9,7 @@ require_once 'amo/create_lead.php';
  * @param $node
  * @param $submission
  */
-function amowebform_webform_submission_insert($node, $submission){
+function amowebformoauth_webform_submission_insert($node, $submission){
 
   // демо-режим
   $demo = false;
