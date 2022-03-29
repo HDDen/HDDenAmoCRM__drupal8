@@ -30,6 +30,12 @@ function amowebformoauth_webform_submission_insert($node, $submission){
   // Фиксируем id
   $form_id = $submission->nid;
 
+  // можем выбрать воронку
+  $pipelines = [
+    //'site.ru' => 123, // integer
+    //'default' => 5240941 // не обязательно, если у вас одна-единственная воронка
+  ];
+
   // Нужно сопоставить поля в $values полям в передаваемом массиве.
   $formsArray = array(
     // 'id' => array('field' => 'pseudoname'),
@@ -88,6 +94,9 @@ function amowebformoauth_webform_submission_insert($node, $submission){
 
   // Проверяем, размечена ли полученная форма
   if (array_key_exists($form_id, $formsArray) && !empty($values)){
+
+    // сразу пропишем страницу. Если что, переназначим её
+    //$amoUtils->setField('src', $_SERVER['HTTP_REFERER']);
 
     // обходим только размеченные поля
     foreach ($formsArray[$form_id] as $amoFieldName => $formFieldName){
@@ -185,11 +194,7 @@ function amowebformoauth_webform_submission_insert($node, $submission){
   // если нужно, устанавливаем имя сайта (например, кириллица не переводится)
   //$amoUtils->setField('sitename', 'lepart.su');
 
-  // можем выбрать воронку
-  $pipelines = [
-    //'site.ru' => 123, // integer
-    'default' => 5253757 // не обязательно, если у вас одна-единственная воронка
-  ];
+  // продолжение выбора воронки
   if (array_key_exists($_SERVER['SERVER_NAME'], $pipelines)){
 
     $log ? $log->write('Main: устаналиваем воронку от '.$_SERVER['SERVER_NAME'].' с id: '.$pipelines['default']) : null ;
@@ -199,7 +204,20 @@ function amowebformoauth_webform_submission_insert($node, $submission){
 
     $log ? $log->write('Main: устаналиваем дефолтную воронку с id: '.$pipelines['default']) : null ;
     $amoUtils->setPipelineId($pipelines['default']);
+  }
 
+  // корректировка полей
+  if ( ($form_id == 999999) ){
+
+    // санитары - селект-поле, нужо прокидывать значение то которое заведено в срм
+    if ($amoUtils->getField('sanitars')){
+      $amoUtils->setField('sanitars', 'Да');
+    } else {
+      $amoUtils->setField('sanitars', 'Нет');
+    }
+
+    // адреса наших пансионатов
+    $amoUtils->setField('travelTo', str_replace(['hutor', 'srednyaya'], ['г. Краснодар, ул. Правобережная, д. 8', 'г. Краснодар, ул. Средняя, д. 43/5'], $amoUtils->getField('travelTo')));
   }
 
   // здесь отправка

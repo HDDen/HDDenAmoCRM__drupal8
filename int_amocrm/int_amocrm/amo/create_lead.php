@@ -37,6 +37,41 @@ class amoCRM
 {
   private $log;
 
+  /**
+   * Создает поле, назначает ему значение
+   */
+  private function createFieldValue($value, $type, $id){
+    //Создадим модель значений поля нашего типа
+    if ($type == 'text'){
+      
+      $сustomFieldValuesModel = new TextCustomFieldValuesModel();
+      //Укажем ID поля
+      $сustomFieldValuesModel->setFieldId($id);
+      //Добавим значения
+      $сustomFieldValuesModel->setValues(
+        (new TextCustomFieldValueCollection())
+          ->add((new TextCustomFieldValueModel())->setValue($value))
+      );
+
+    } else if ($type == 'select') {
+
+      $сustomFieldValuesModel = new SelectCustomFieldValuesModel();
+      //Укажем ID поля
+      $сustomFieldValuesModel->setFieldId($id);
+      //Добавим значения
+      $сustomFieldValuesModel->setValues(
+        (new SelectCustomFieldValueCollection())
+            ->add((new SelectCustomFieldValueModel())->setValue($value)) //Текст должен совпадать с одним из значений поля статус
+      );
+
+    } else {
+      $this->log ? $this->log->write('createFieldValue(): не распознали тип поля или он не поддерживается, $type="'.$type.'"') : false;
+      return false;
+    }
+
+    return $сustomFieldValuesModel;
+  }
+
   public function add_lead($lead_data) {
     include_once __DIR__ . '/bootstrap.php';
 
@@ -47,20 +82,9 @@ class amoCRM
       $this->log = false;
     }
 
-    $name = $lead_data['NAME'];
-    $phone = $lead_data['PHONE'];
-    $email = $lead_data['EMAIL'];
-    $description = $lead_data['TEXT'] ? $lead_data['TEXT'] : '';
-    $leadName = $lead_data['LEAD_NAME'];
-    $tag_lead_raw = $lead_data['TAG'] ? $lead_data['TAG'] : array();
-    $tag_contact_raw = $lead_data['TAG_CONTACT'] ? $lead_data['TAG_CONTACT'] : array();
-    $sitename = $lead_data['SITENAME'] ? $lead_data['SITENAME'] : $_SERVER['SERVER_NAME'];
-    //$city = $lead_data['CITY'];
-    $companyName = $lead_data['COMPANY'] ? $lead_data['COMPANY'] : '';
-    $files = false;//$files = $lead_data['FILES'] ? $lead_data['FILES'] : '';
-    $src = $lead_data['SRC'] ? $lead_data['SRC'] : '';
-    $pipeline = $lead_data['pipelineId'] ? $lead_data['pipelineId'] : false;
-
+    // делаем extract
+    $this->log ? $this->log->write('Распаковываем полученные переменные') : false;
+    extract($lead_data, EXTR_PREFIX_ALL, 'importedLeadData');
 
     // Первый шаг - получаем токен. После авторизации можно делать остальное
     $this->log ? $this->log->write('Получаем токен') : false;
@@ -81,10 +105,10 @@ class amoCRM
 
     // Поиск или установка тега (для контакта)
     $this->log ? $this->log->write('Работа с тегами контакта') : false;
-    if (!empty($tag_contact_raw)){
+    if (isset($importedLeadData_tag_contact_raw) && !empty($importedLeadData_tag_contact_raw)){
       $tagsCollection_contact = new TagsCollection(); // пустая коллекция для хранения
 
-      foreach ($tag_contact_raw as $contact_tag_value){ // перебор всех текстов для тегов
+      foreach ($importedLeadData_tag_contact_raw as $contact_tag_value){ // перебор всех текстов для тегов
         $contact_tag_value = $contact_tag_value;
 
         $tagsFilter = new TagsFilter();
@@ -128,10 +152,10 @@ class amoCRM
     // Поиск или установка тега (для сделки).
     // По сути - дубликат кода выше, с минимальным изменением названия переменных. Отрефакторить
     $this->log ? $this->log->write('Работа с тегами сделки') : false;
-    if (!empty($tag_lead_raw)){
+    if (isset($importedLeadData_tag_lead_raw) && !empty($importedLeadData_tag_lead_raw)){
       $tagsCollection_lead = new TagsCollection(); // пустая коллекция для хранения
 
-      foreach ($tag_lead_raw as $lead_tag_value){ // перебор всех текстов для тегов
+      foreach ($importedLeadData_tag_lead_raw as $lead_tag_value){ // перебор всех текстов для тегов
         $lead_tag_value = $lead_tag_value;
 
         $tagsFilter = new TagsFilter();
@@ -178,18 +202,18 @@ class amoCRM
     // Создаём контакт
     $this->log ? $this->log->write('Создаём контакт') : false;
     try {
-      $query_str = $phone ? $phone : $email;
+      $query_str = $importedLeadData_phone ? $importedLeadData_phone : $importedLeadData_email;
       $contacts = $apiClient->contacts()->get((new ContactsFilter())->setQuery($query_str));
       $contact = $contacts[0];
     } catch(AmoCRMApiException $e) {
       $contact = new ContactModel();
-      $contact->setName($name);
+      $contact->setName($importedLeadData_name);
 
       $CustomFieldsValues = new CustomFieldsValuesCollection();
       $emailField = (new MultitextCustomFieldValuesModel())->setFieldCode('EMAIL');
-      $emailField->setValues((new MultitextCustomFieldValueCollection())->add((new MultitextCustomFieldValueModel())->setEnum('WORK')->setValue($email)));
+      $emailField->setValues((new MultitextCustomFieldValueCollection())->add((new MultitextCustomFieldValueModel())->setEnum('WORK')->setValue($importedLeadData_email)));
       $phoneField = (new MultitextCustomFieldValuesModel())->setFieldCode('PHONE');
-      $phoneField->setValues((new MultitextCustomFieldValueCollection())->add((new MultitextCustomFieldValueModel())->setEnum('WORK')->setValue($phone)));
+      $phoneField->setValues((new MultitextCustomFieldValueCollection())->add((new MultitextCustomFieldValueModel())->setEnum('WORK')->setValue($importedLeadData_phone)));
 
       $CustomFieldsValues->add($emailField);
       $CustomFieldsValues->add($phoneField);
@@ -214,64 +238,108 @@ class amoCRM
     // Создаем сделку
     $this->log ? $this->log->write('Создаём сделку') : false;
     $lead = new LeadModel();
-    $lead->setName($leadName)->setContacts((new ContactsCollection())->add(($contact)));
-
-    // Кастомные поля
-    $this->log ? $this->log->write('Создаем поля') : false;
-    //Создадим коллекцию полей сущности
-    $CustomFieldsValues = new CustomFieldsValuesCollection();
-
-    /* *
-     * Адрес сайта
-     * */
-    if ($sitename){
-      //Создадим модель значений поля типа текст
-      $srcField_textCustomFieldValuesModel = new TextCustomFieldValuesModel();
-      //Укажем ID поля
-      $srcField_textCustomFieldValuesModel->setFieldId(413083);
-      //Добавим значения
-      $srcField_textCustomFieldValuesModel->setValues(
-        (new TextCustomFieldValueCollection())
-          ->add((new TextCustomFieldValueModel())->setValue($sitename))
-      );
-      //Добавим значение в коллекцию полей сущности
-      $CustomFieldsValues->add($srcField_textCustomFieldValuesModel);
-    }
-
-    /* *
-     * Страница обращения
-     * */
-    if ($src){
-      //Создадим модель значений поля типа текст
-      $srcField_textCustomFieldValuesModel = new TextCustomFieldValuesModel();
-      //Укажем ID поля
-      $srcField_textCustomFieldValuesModel->setFieldId(381167);
-      //Добавим значения
-      $srcField_textCustomFieldValuesModel->setValues(
-        (new TextCustomFieldValueCollection())
-          ->add((new TextCustomFieldValueModel())->setValue($src))
-      );
-      //Добавим значение в коллекцию полей сущности
-      $CustomFieldsValues->add($srcField_textCustomFieldValuesModel);
-    }
+    $lead->setName($importedLeadData_lead_name)->setContacts((new ContactsCollection())->add(($contact)));
 
     /**
-     * Прикреплён файл
+     * Кастомные поля лида
      */
-    /*if ($files){
-      $filesField_textCustomFieldValuesModel = new TextCustomFieldValuesModel();
-      $filesField_textCustomFieldValuesModel->setFieldId(976483); // ID поля
-      $filesField_textCustomFieldValuesModel->setValues(
-        (new TextCustomFieldValueCollection())
-          ->add((new TextCustomFieldValueModel())->setValue($files))
-      );
-      $CustomFieldsValues->add($filesField_textCustomFieldValuesModel);
-    }*/
+    $this->log ? $this->log->write('Создаем поля') : false;
+
+    //Создадим коллекцию полей сущности
+    $CustomFieldsValues = new CustomFieldsValuesCollection();
+    
+    // адрес сайта
+    if (isset($importedLeadData_sitename) && $importedLeadData_sitename){
+      $CustomFieldsValues->add($this->createFieldValue($importedLeadData_sitename, 'text', 413083));
+    }
+
+    // Страница обращения
+    if (isset($importedLeadData_src) && $importedLeadData_src){
+      $CustomFieldsValues->add($this->createFieldValue($importedLeadData_src, 'text', 381167));
+    }
+
+    // Прикреплён файл
+    if (isset($importedLeadData_files) && $importedLeadData_files){
+      $CustomFieldsValues->add($this->createFieldValue($importedLeadData_files, 'text', 976483));
+    }
+
+    // Зарегистрироваться в клинику
+    if (isset($importedLeadData_clinicToRegister) && $importedLeadData_clinicToRegister){
+      $CustomFieldsValues->add($this->createFieldValue($importedLeadData_clinicToRegister, 'text', 464085));
+    }
+
+    // Записаться к доктору
+    if (isset($importedLeadData_docToRegister) && $importedLeadData_docToRegister){
+      $CustomFieldsValues->add($this->createFieldValue($importedLeadData_docToRegister, 'text', 464093));
+    }
+
+    // Время для звонка
+    if (isset($importedLeadData_timeToCall) && $importedLeadData_timeToCall){
+      $CustomFieldsValues->add($this->createFieldValue($importedLeadData_timeToCall, 'text', 382275));
+    }
+
+    // Интересующая услуга
+    if (isset($importedLeadData_interested) && $importedLeadData_interested){
+      $CustomFieldsValues->add($this->createFieldValue($importedLeadData_interested, 'text', 382217));
+    }
+
+    // Возраст
+    if (isset($importedLeadData_age) && $importedLeadData_age){
+      $CustomFieldsValues->add($this->createFieldValue($importedLeadData_age, 'text', 381015));
+    }
+    // Пол
+    if (isset($importedLeadData_sex) && $importedLeadData_sex){
+      $CustomFieldsValues->add($this->createFieldValue($importedLeadData_sex, 'text', 381017));
+    }
+    // Самостоятельность
+    if (isset($importedLeadData_selfdependence) && $importedLeadData_selfdependence){
+      $CustomFieldsValues->add($this->createFieldValue($importedLeadData_selfdependence, 'text', 381021));
+    }
+    // Степерь псих. заболеваний
+    if (isset($importedLeadData_psycho) && $importedLeadData_psycho){
+      $CustomFieldsValues->add($this->createFieldValue($importedLeadData_psycho, 'text', 381023));
+    }
+    // Желаемая дата въезда
+    if (isset($importedLeadData_arrivaldate) && $importedLeadData_arrivaldate){
+      $CustomFieldsValues->add($this->createFieldValue($importedLeadData_arrivaldate, 'text', 381013));
+    }
+    // Желаемая дата въезда
+    if (isset($importedLeadData_roomPlaces) && $importedLeadData_roomPlaces){
+      $CustomFieldsValues->add($this->createFieldValue($importedLeadData_roomPlaces, 'text', 381163));
+    }
+
+    // откуда
+    if (isset($importedLeadData_travelFrom) && $importedLeadData_travelFrom){
+      $CustomFieldsValues->add($this->createFieldValue($importedLeadData_travelFrom, 'text', 382429));
+    }
+    // куда
+    if (isset($importedLeadData_travelTo) && $importedLeadData_travelTo){
+      $CustomFieldsValues->add($this->createFieldValue($importedLeadData_travelTo, 'text', 382431));
+    }
+    // предв. расчет
+    if (isset($importedLeadData_preEstimate) && $importedLeadData_preEstimate){
+      $CustomFieldsValues->add($this->createFieldValue($importedLeadData_preEstimate, 'text', 381139));
+    }
+    // ночной тариф 
+    if (isset($importedLeadData_nightTariff) && $importedLeadData_nightTariff){
+      $CustomFieldsValues->add($this->createFieldValue($importedLeadData_nightTariff, 'text', 381141));
+    }
+    // поддержка санитаров
+    if (isset($importedLeadData_sanitars) && $importedLeadData_sanitars){
+      $CustomFieldsValues->add($this->createFieldValue($importedLeadData_sanitars, 'select', 381161));
+    }
+
+    // дата для экскурсии
+    if (isset($importedLeadData_excursion) && $importedLeadData_excursion){
+      $CustomFieldsValues->add($this->createFieldValue($importedLeadData_excursion, 'text', 381075));
+    }
 
 
-    // Установим сущности ВСЕ собранные поля РАЗОМ
+    // Теперь линкуем сущности все собранные поля
     $lead->setCustomFieldsValues($CustomFieldsValues);
-    // С полями закончили
+    /**
+     * С полями закончили
+     */
 
 
     // Назначим теги лиду
@@ -279,9 +347,9 @@ class amoCRM
     if (isset($tagsCollection_lead)) $lead->setTags($tagsCollection_lead);
 
     // Назначим воронку лиду
-    if (isset($pipeline)){
+    if (isset($importedLeadData_pipelineId) && $importedLeadData_pipelineId){
       $this->log ? $this->log->write('Назначаем воронку лиду') : false;
-      $lead->setPipelineId($pipeline);
+      $lead->setPipelineId($importedLeadData_pipelineId);
     }
 
     // Сборка и отправка
@@ -292,10 +360,10 @@ class amoCRM
     try {
       $leadsCollection = $leadsService->add($leadsCollection);
       $lead_id = $leadsCollection[0]->id;
-      if($companyName != '') {
+      if(isset($importedLeadData_companyName) && $importedLeadData_companyName) {
         //Создадим компанию
         $company = new CompanyModel();
-        $company->setName($companyName);
+        $company->setName($importedLeadData_companyName);
 
         $companiesCollection = new CompaniesCollection();
         $companiesCollection->add($company);
@@ -324,10 +392,10 @@ class amoCRM
         }
       }
 
-      if($description != '') {
+      if(isset($importedLeadData_message) && $importedLeadData_message) {
         $notesCollection = new NotesCollection();
         $serviceMessageNote = new CommonNote();
-        $serviceMessageNote->setEntityId($lead_id)->setText($description);
+        $serviceMessageNote->setEntityId($lead_id)->setText($importedLeadData_message);
 
         $notesCollection->add($serviceMessageNote);
 

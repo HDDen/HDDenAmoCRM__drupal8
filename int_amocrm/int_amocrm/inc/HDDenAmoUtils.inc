@@ -133,6 +133,17 @@ class HDDenAmoUtils {
   }
 
   /**
+   * Получает значение поля
+   */
+  public function getField($fieldName){
+    if (isset($this->formData[$fieldName])){
+      return $this->formData[$fieldName];
+    } else {
+      return null;
+    }
+  }
+
+  /**
    * Устанавливает ID воронки
    * @param $id
    */
@@ -324,24 +335,14 @@ class HDDenAmoUtils {
       return false;
     }
 
-    // массив с 'NAME', 'PHONE', 'EMAIL', 'TEXT' - описание, 'LEAD_NAME' - название сделки, 'TAG' - массив, 'TAG_CONTACT' - массив но для контакта
-    $amo_array = array(
-      'NAME' => $this->formData['name_uniqueized'], // имя контакта
-      'PHONE' => @$this->formData['phone'],
-      'EMAIL' => @$this->formData['email'],
-      'TEXT' => @$this->formData['message'],
-      'FILES' => @$this->formData['files'],
-      'LEAD_NAME' => $leadName, // название сделки
-      'TAG' => $leadTag,
-      'TAG_CONTACT' => $contactTag,
-      'SITENAME' => $this->sitename,
-      'SRC' => @$this->formData['src'],
-    );
-
-    // id воронки
-    if (isset($this->formData['pipelineId']) && $this->formData['pipelineId']){
-      $amo_array['pipelineId'] = $this->formData['pipelineId'];
-    }
+    // проброс пришедших переменных
+    $amo_array = $this->formData;
+    // пропишем отличающиеся от стандартных имён
+    $amo_array['name'] = $this->formData['name_uniqueized']; // имя контакта
+    $amo_array['lead_name'] = $leadName; // название сделки
+    $amo_array['tag_lead_raw'] = $leadTag;
+    $amo_array['tag_contact_raw'] = $contactTag;
+    $amo_array['sitename'] = $this->sitename;
 
     // Отправляем
     $amoCrm = new AmoCRM();
