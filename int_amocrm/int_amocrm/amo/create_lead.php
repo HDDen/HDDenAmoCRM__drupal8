@@ -73,7 +73,8 @@ class amoCRM
   }
 
   public function add_lead($lead_data) {
-    include_once __DIR__ . '/bootstrap.php';
+    $bootstrap_path = __DIR__ . '/bootstrap.php';
+    require_once $bootstrap_path;
 
     // проверка доступности логгера
     if (class_exists(HDDenLogger::class)){

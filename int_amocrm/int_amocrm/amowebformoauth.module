@@ -21,6 +21,10 @@ function amowebformoauth_webform_submission_insert($node, $submission){
     $log = false;
   }
 
+  // установка временной зоны
+  $oldTimezone = date_default_timezone_get();
+  date_default_timezone_set('Europe/Moscow');
+
   // creating amoutils instance
   $amoUtils = new HDDenAmoUtils();
 
@@ -227,4 +231,8 @@ function amowebformoauth_webform_submission_insert($node, $submission){
   } else {
     $log ? $log->write('Main: установлен демо-режим, дошли до отправки но не стали') : null ;
   }
+  
+  // возвращаем временную зону
+  $oldTimezone = date_default_timezone_get();
+  date_default_timezone_set($oldTimezone);
 }

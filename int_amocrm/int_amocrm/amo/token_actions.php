@@ -35,8 +35,16 @@ function saveToken($accessToken)
  */
 function getToken()
 {
+	// проверка доступности логгера
+	if (class_exists(HDDenLogger::class)){
+		$log = new HDDenLogger();
+	} else {
+		$log = false;
+	}
+
     if (!file_exists(TOKEN_FILE)) {
-        exit('Access token file not found');
+	    $log ? $log->write('amo/token_actions.php: Access token file not found! Путь ' . TOKEN_FILE) : null;
+    	exit('Access token file not found');
     }
 
     $accessToken = json_decode(file_get_contents(TOKEN_FILE), true);

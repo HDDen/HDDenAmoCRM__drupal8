@@ -32,6 +32,20 @@ function int_amocrm_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $for
  */
 function int_amocrm_submitCbk(&$form, \Drupal\Core\Form\FormStateInterface $form_state) {
 
+  // демо-режим
+  $demo = false;
+
+  // проверка доступности логгера
+  if (class_exists(HDDenLogger::class)){
+    $log = new HDDenLogger();
+  } else {
+    $log = false;
+  }
+
+  // установка временной зоны
+  $oldTimezone = date_default_timezone_get();
+  date_default_timezone_set('Europe/Moscow');
+
   // creating amoutils instance
   $amoUtils = new HDDenAmoUtils();
 
@@ -40,6 +54,12 @@ function int_amocrm_submitCbk(&$form, \Drupal\Core\Form\FormStateInterface $form
 
   // Фиксируем id
   $form_id = $form['#form_id'];
+  
+  // можем выбрать воронку
+  $pipelines = [
+    //'site.ru' => 123, // integer
+    //'default' => 5240941 // не обязательно, если у вас одна-единственная воронка
+  ];
 
   // Нужно сопоставить поля в $values полям в передаваемом массиве.
   $formsArray = array(
@@ -99,6 +119,9 @@ function int_amocrm_submitCbk(&$form, \Drupal\Core\Form\FormStateInterface $form
   // Проверяем, размечена ли полученная форма
   if (array_key_exists($form_id, $formsArray) && !empty($values)){
 
+    // сразу пропишем страницу. Если что, переназначим её
+    //$amoUtils->setField('src', $_SERVER['HTTP_REFERER']);
+
     // обходим только размеченные поля
     foreach ($formsArray[$form_id] as $amoFieldName => $formFieldName){
 
@@ -120,16 +143,42 @@ function int_amocrm_submitCbk(&$form, \Drupal\Core\Form\FormStateInterface $form
       if (is_array($formFieldName)){
         // запускаем цикл по компонентам составного поля - обходим каждое перечисленное
         foreach ($formFieldName as $part_name){
-          if (array_key_exists($part_name, $values)){
+          if (array_key_exists($part_name, $values) || isset($values[$part_name])){ // второе - для поддержки drupal 7, где доступ по порядковому номеру а не по ключу
             // Значение может быть как в виде строки, так и массивом.
-            $val = $amoUtils->parseValue($values[$part_name]);
+
+            // В drupal 7 если мы передавали файл, мы никак его не вычислим, исходя только из значения поля.
+            // Но в $submission передастся массив ['file_usage']['added_fids'][...], в котором перечислены id добавленных файлов.
+            // если значение поля внезапно есть в этом массиве - был передан id файла, и нужно попытаться получить ссылку на него.
+            $drupal7_tryfield = false; // дефолт
+            if (isset($submission->file_usage) && isset($submission->file_usage['added_fids']) && !empty($submission->file_usage['added_fids'])){
+              if (is_array($values[$part_name])
+                  && (count($values[$part_name]) === 1)
+                  && in_array($values[$part_name][0], $submission->file_usage['added_fids']))
+              {
+                $drupal7_tryfield = 'd7_file';
+              }
+            }
+
+            $val = $amoUtils->parseValue($values[$part_name], $drupal7_tryfield);
             $amoUtils->setField($amoFieldName, $val, true);
           }
         }
       } else {
-        if (array_key_exists($formFieldName, $values)){
+        if (array_key_exists($formFieldName, $values) || isset($values[$part_name])){ // второе - для поддержки drupal 7, где доступ по порядковому номеру а не по ключу
           // Значение может быть как в виде строки, так и массивом.
-          $val = $amoUtils->parseValue($values[$formFieldName]);
+
+          // скопированный выше способ детекта загрузки файла для Drupal 7
+          $drupal7_tryfield = false; // дефолт
+          if (isset($submission->file_usage) && isset($submission->file_usage['added_fids']) && !empty($submission->file_usage['added_fids'])){
+            if (is_array($values[$part_name])
+              && (count($values[$part_name]) === 1)
+              && in_array($values[$part_name][0], $submission->file_usage['added_fids']))
+            {
+              $drupal7_tryfield = 'd7_file';
+            }
+          }
+
+          $val = $amoUtils->parseValue($values[$formFieldName], $drupal7_tryfield);
           $amoUtils->setField($amoFieldName, $val);
         }
       }
@@ -169,11 +218,7 @@ function int_amocrm_submitCbk(&$form, \Drupal\Core\Form\FormStateInterface $form
   // если нужно, устанавливаем имя сайта (например, кириллица не переводится)
   //$amoUtils->setField('sitename', 'inte9ration.ru');
 
-  // можем выбрать воронку
-  $pipelines = [
-    //'site.ru' => 123, // integer
-    'default' => 5253757 // не обязательно, если у вас одна-единственная воронка
-  ];
+  // продолжение выбора воронки
   if (array_key_exists($_SERVER['SERVER_NAME'], $pipelines)){
 
     $log ? $log->write('Main: устаналиваем воронку от '.$_SERVER['SERVER_NAME'].' с id: '.$pipelines['default']) : null ;
@@ -183,7 +228,20 @@ function int_amocrm_submitCbk(&$form, \Drupal\Core\Form\FormStateInterface $form
 
     $log ? $log->write('Main: устаналиваем дефолтную воронку с id: '.$pipelines['default']) : null ;
     $amoUtils->setPipelineId($pipelines['default']);
+  }
 
+  // корректировка полей
+  if ( ($form_id == 999999) ){
+
+    // санитары - селект-поле, нужо прокидывать значение то которое заведено в срм
+    if ($amoUtils->getField('sanitars')){
+      $amoUtils->setField('sanitars', 'Да');
+    } else {
+      $amoUtils->setField('sanitars', 'Нет');
+    }
+
+    // адреса наших пансионатов
+    $amoUtils->setField('travelTo', str_replace(['hutor', 'srednyaya'], ['г. Краснодар, ул. Правобережная, д. 8', 'г. Краснодар, ул. Средняя, д. 43/5'], $amoUtils->getField('travelTo')));
   }
 
   // здесь отправка
@@ -193,4 +251,8 @@ function int_amocrm_submitCbk(&$form, \Drupal\Core\Form\FormStateInterface $form
   } else {
     $log ? $log->write('Main: установлен демо-режим, дошли до отправки но не стали') : null ;
   }
+  
+  // возвращаем временную зону
+  $oldTimezone = date_default_timezone_get();
+  date_default_timezone_set($oldTimezone);
 }
