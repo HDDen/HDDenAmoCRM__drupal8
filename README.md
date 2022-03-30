@@ -1,9 +1,14 @@
 # HDDenAmoCRM
-Подготовлено для drupal 7 и 8+
+Подготовлено для drupal 7, 8+, wordpress (CF7).
 
 Подготавливаем файлы интеграции: конфигурируем имя модуля, заменяем старое на новое в функциях модуля. Затем проверяем $formsArray в файле модуля - заносим формы и настраиваем маппинг. Если нужны доп. поля, просто заносим их в маппинг.
 Затем в inc/HDDenAmoUtils.php в send() можем добавить новые поля/убрать ненужные. Также смотрим это в amo/create_lead.php.
 Настраиваем воронку в файле модуля, либо выключаем параметр, если она одна.
+
+Для drupal 8+ в корневом .htaccess разрешить доступ к get_token.php:<br />
+<code>&#35;For security reasons, deny access to other PHP files on public sites.</code><br />
+<code><...></code><br />
+<code>RewriteCond %{REQUEST_URI} !/modules/custom/<имя модуля>/amo/get_token.php$</code><br />
 
 <ol>
   <li>Создаём интеграцию в amocrm:<br />
