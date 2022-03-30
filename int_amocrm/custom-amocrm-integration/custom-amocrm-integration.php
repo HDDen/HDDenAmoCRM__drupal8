@@ -63,13 +63,13 @@ function cf7_AmoCRM_Integration($cf7){
 
     $blocked = array('9999'); // отсюда не будет ничего приходить
 
-    // проверяем, не заблокирована ли форма
-    if (in_array($form_id, $blocked)){
-        $log ? $log->write('Main: обращение из заблокированной формы id'.$form_id.': '.print_r($submission, true)) : null ;
-        return true;
-    } else {
-        $log ? $log->write('Main: получено обращение: '.print_r($submission, true)) : null ;
-    }
+  // проверяем, не заблокирована ли форма
+  if (in_array($form_id, $blocked)){
+    $log ? $log->write('Main: обращение из заблокированной формы id'.$form_id.': '.print_r($values, true)) : null ;
+    return true;
+  } else {
+    $log ? $log->write('Main: получено обращение: '.$form_id.PHP_EOL.'var_export($values, true)') : null ;
+  }
 
     // Проверяем, размечена ли полученная форма
     if (array_key_exists($form_id, $formsArray) && !empty($values)) {
@@ -98,53 +98,46 @@ function cf7_AmoCRM_Integration($cf7){
             if (is_array($formFieldName)) {
                 // запускаем цикл по компонентам составного поля - обходим каждое перечисленное
                 foreach ($formFieldName as $part_name) {
-                    if (array_key_exists($part_name, $values) || isset($values[$part_name])
-                    ) { // второе - для поддержки drupal 7, где доступ по порядковому номеру а не по ключу
+                    if (array_key_exists($part_name, $values) || isset($values[$part_name])) { // второе - для поддержки drupal 7, где доступ по порядковому номеру а не по ключу
                         // Значение может быть как в виде строки, так и массивом.
 
                         // В drupal 7 если мы передавали файл, мы никак его не вычислим, исходя только из значения поля.
                         // Но в $submission передастся массив ['file_usage']['added_fids'][...], в котором перечислены id добавленных файлов.
                         // если значение поля внезапно есть в этом массиве - был передан id файла, и нужно попытаться получить ссылку на него.
                         $drupal7_tryfield = false; // дефолт
-                        if (isset($submission->file_usage) && isset($submission->file_usage['added_fids']) && !empty($submission->file_usage['added_fids'])) {
-                            if (
-                                is_array($values[$part_name])
-                                && (count($values[$part_name]) === 1)
-                                && in_array($values[$part_name][0],
-                                    $submission->file_usage['added_fids']
-                                )
-                            ) {
-                                $drupal7_tryfield = 'd7_file';
-                            }
-                        }
+		            if (isset($submission) && isset($submission->file_usage) && isset($submission->file_usage['added_fids']) && !empty($submission->file_usage['added_fids'])){
+		              if (is_array($values[$part_name])
+		                  && (count($values[$part_name]) === 1)
+		                  && in_array($values[$part_name][0], $submission->file_usage['added_fids']))
+		              {
+		                $drupal7_tryfield = 'd7_file';
+		              }
+		            }
 
-                        $val = $amoUtils->parseValue($values[$part_name], $drupal7_tryfield);
-                        $amoUtils->setField($amoFieldName, $val,
-                            true
-                        );
-                    }
+	            $val = $amoUtils->parseValue($formFieldName, $values[$part_name], $drupal7_tryfield, $form_state);
+	            $amoUtils->setField($amoFieldName, $val, true);
+	          }
                 }
             } else {
-                if (array_key_exists($formFieldName, $values) || isset($values[$part_name])) { // второе - для поддержки drupal 7, где доступ по порядковому номеру а не по ключу
+                if (array_key_exists($formFieldName, $values)) { // второе - для поддержки drupal 7, где доступ по порядковому номеру а не по ключу
                     // Значение может быть как в виде строки, так и массивом.
 
-                    // скопированный выше способ детекта загрузки файла для Drupal 7
-                    $drupal7_tryfield = false; // дефолт
-                    if (isset($submission->file_usage) && isset($submission->file_usage['added_fids']) && !empty($submission->file_usage['added_fids'])) {
-                        if (
-                            is_array($values[$part_name])
-                            && (count($values[$part_name]) === 1)
-                            && in_array($values[$part_name][0], $submission->file_usage['added_fids'])
-                        ) {
-                            $drupal7_tryfield = 'd7_file';
-                        }
-                    }
+	          // скопированный выше способ детекта загрузки файла для Drupal 7
+	          $drupal7_tryfield = false; // дефолт
+	          if (isset($submission) && isset($submission->file_usage) && isset($submission->file_usage['added_fids']) && !empty($submission->file_usage['added_fids'])){
+	            if (is_array($values[$formFieldName])
+	              && (count($values[$formFieldName]) === 1)
+	              && in_array($values[$formFieldName][0], $submission->file_usage['added_fids']))
+	            {
+	              $drupal7_tryfield = 'd7_file';
+	            }
+	          }
 
-                    $val = $amoUtils->parseValue($values[$formFieldName], $drupal7_tryfield);
-                    $amoUtils->setField($amoFieldName, $val);
-                }
-            }
-        }
+	          $val = $amoUtils->parseValue($formFieldName, $values[$formFieldName], $drupal7_tryfield, $form_state);
+	          $amoUtils->setField($amoFieldName, $val);
+	        }
+	      }
+	    }
 
         // Допишем в $message имя формы
         if (isset($formsArray[$form_id]['formName'])) {
@@ -152,7 +145,7 @@ function cf7_AmoCRM_Integration($cf7){
         }
     } else if (!empty($values)) {
         // форма не распознана, соберем всё в $message
-        $log ? $log->write('Main: форма не опознана, полученные значения: ' . PHP_EOL . print_r($submission, true)) : null;
+        $log ? $log->write('Main: форма не опознана, полученные значения: ' . PHP_EOL . print_r($values, true)) : null;
 
         $message = 'Форма не распознана, полученные значения:' . PHP_EOL . PHP_EOL;
         foreach ($values as $values_index => $values_data) {

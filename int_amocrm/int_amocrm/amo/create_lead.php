@@ -43,7 +43,7 @@ class amoCRM
   private function createFieldValue($value, $type, $id){
     //Создадим модель значений поля нашего типа
     if ($type == 'text'){
-      
+
       $сustomFieldValuesModel = new TextCustomFieldValuesModel();
       //Укажем ID поля
       $сustomFieldValuesModel->setFieldId($id);
@@ -248,7 +248,7 @@ class amoCRM
 
     //Создадим коллекцию полей сущности
     $CustomFieldsValues = new CustomFieldsValuesCollection();
-    
+
     // адрес сайта
     if (isset($importedLeadData_sitename) && $importedLeadData_sitename){
       $CustomFieldsValues->add($this->createFieldValue($importedLeadData_sitename, 'text', 413083));
@@ -304,7 +304,7 @@ class amoCRM
     if (isset($importedLeadData_arrivaldate) && $importedLeadData_arrivaldate){
       $CustomFieldsValues->add($this->createFieldValue($importedLeadData_arrivaldate, 'text', 381013));
     }
-    // Желаемая дата въезда
+    // Кол-во комнат
     if (isset($importedLeadData_roomPlaces) && $importedLeadData_roomPlaces){
       $CustomFieldsValues->add($this->createFieldValue($importedLeadData_roomPlaces, 'text', 381163));
     }
@@ -321,7 +321,7 @@ class amoCRM
     if (isset($importedLeadData_preEstimate) && $importedLeadData_preEstimate){
       $CustomFieldsValues->add($this->createFieldValue($importedLeadData_preEstimate, 'text', 381139));
     }
-    // ночной тариф 
+    // ночной тариф
     if (isset($importedLeadData_nightTariff) && $importedLeadData_nightTariff){
       $CustomFieldsValues->add($this->createFieldValue($importedLeadData_nightTariff, 'text', 381141));
     }
@@ -333,6 +333,10 @@ class amoCRM
     // дата для экскурсии
     if (isset($importedLeadData_excursion) && $importedLeadData_excursion){
       $CustomFieldsValues->add($this->createFieldValue($importedLeadData_excursion, 'text', 381075));
+    }
+    // Комментарий
+    if (isset($importedLeadData_excursion) && $importedLeadData_excursion){
+      $CustomFieldsValues->add($this->createFieldValue($importedLeadData_excursion, 'text', 381019));
     }
 
 

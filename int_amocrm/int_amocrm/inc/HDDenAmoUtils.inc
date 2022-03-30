@@ -209,7 +209,7 @@ class HDDenAmoUtils {
    *
    * @return string
    */
-  public function parseValue($data, $type = false){
+  public function parseValue($field_name, $data, $type = false, $form_state = false){
     $result = '';
 
     // если был передан массив, собираем все значения в строку
@@ -240,6 +240,21 @@ class HDDenAmoUtils {
 
           } else if (isset($data[0]['value'])){
             $result .= $data[0]['value'];
+          } else if (isset($data[0]['target_id'])){
+            if ($form_state){
+              $target_ids = $form_state
+                ->getFormObject()
+                ->getEntity()
+                ->get($field_name)
+                ->referencedEntities();
+
+              $label = $target_ids[0]->label();
+
+              $result .= $label;
+            } else {
+              $result .= $data[0]['target_id'];
+            }
+
           } else if ( isset($data[0]['fids']) && !empty($data[0]['fids']) ){ // файлы
 
             // если подключен класс со сниппетами к друпалу
@@ -252,6 +267,8 @@ class HDDenAmoUtils {
                 $result .= $file_uri;
               }
             }
+          } else {
+            $result .= var_export($data[0], true);
           }
         } else if (!isAssoc){
           foreach ($data as $data_elem){
