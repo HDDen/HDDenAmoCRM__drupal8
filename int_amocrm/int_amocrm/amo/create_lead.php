@@ -335,8 +335,8 @@ class amoCRM
       $CustomFieldsValues->add($this->createFieldValue($importedLeadData_excursion, 'text', 381075));
     }
     // Комментарий
-    if (isset($importedLeadData_excursion) && $importedLeadData_excursion){
-      $CustomFieldsValues->add($this->createFieldValue($importedLeadData_excursion, 'text', 381019));
+    if (isset($importedLeadData_comment) && $importedLeadData_comment){
+      $CustomFieldsValues->add($this->createFieldValue($importedLeadData_comment, 'text', 381019));
     }
 
 
