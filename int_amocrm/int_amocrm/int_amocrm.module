@@ -195,7 +195,7 @@ function int_amocrm_submitCbk(&$form, \Drupal\Core\Form\FormStateInterface $form
 
     $message = 'Форма не распознана, полученные значения:'.PHP_EOL.PHP_EOL;
     foreach ($values as $values_index => $values_data){
-      $message .= "['$values_index'] = ".$amoUtils->parseValue($values_data).PHP_EOL;
+      $message .= "['$values_index'] = ".$amoUtils->parseValue(false, $values_data).PHP_EOL;
     }
     $message .= 'Форма "'.$form_id.'"'.PHP_EOL;
 
@@ -204,9 +204,9 @@ function int_amocrm_submitCbk(&$form, \Drupal\Core\Form\FormStateInterface $form
 
     // пытаемся найти телефон
     if (isset($values['field_phone'])){
-      $phone = $amoUtils->parseValue($values['field_phone']);
+      $phone = $amoUtils->parseValue(false, $values['field_phone']);
     } else if (isset($values['phone'])){
-      $phone = $amoUtils->parseValue($values['phone']);
+      $phone = $amoUtils->parseValue(false, $values['phone']);
     }
     if ($phone){
       $amoUtils->setPhone($phone);
@@ -242,6 +242,19 @@ function int_amocrm_submitCbk(&$form, \Drupal\Core\Form\FormStateInterface $form
 
     // адреса наших пансионатов
     $amoUtils->setField('travelTo', str_replace(['hutor', 'srednyaya'], ['г. Краснодар, ул. Правобережная, д. 8', 'г. Краснодар, ул. Средняя, д. 43/5'], $amoUtils->getField('travelTo')));
+  }
+  
+  // возраст зависимого
+  if ($amoUtils->getField('age')){
+    $old_arr = ['a1', 'a2', 'a3', 'a4', 'a5'];
+    $replace_arr = [
+      'от 14 до 18 лет',
+      'от 18 до 21 года',
+      'с 21 года до 30 лет',
+      'с 30 до 40 лет',
+      'выше 40 лет',
+    ];
+    $amoUtils->setField('age', str_replace($old_arr, $replace_arr, $amoUtils->getField('age')));
   }
 
   // здесь отправка

@@ -57,12 +57,45 @@ function cf7_AmoCRM_Integration($cf7){
             'name' => 'your-name',
             'phone' => 'your-phone',
             'timeToCall' => 'your-time',
+	    'tags' => ['lead'=>['site.ru'], 'contact'=>['Контакт из site.ru']],
             'formName' => 'Основная форма',
         ],
     );
 
     $blocked = array('9999'); // отсюда не будет ничего приходить
 
+  // переназначаем маппинг для поддоменов. домен -> [id формы на нём = id рамеченной формы]
+  $subdomains = [
+    'anapa.grail.su' => ['189' => '312', '190' => '311'],
+    'armavir.grail.su' => ['186' => '312', '187' => '311'],
+    'belorechensk.grail.su' => ['186' => '312', '187' => '311'],
+    'gelendzhik.grail.su' => ['186' => '312', '187' => '311'],
+    'goryachii-kluch.grail.su' => ['185' => '312', '186' => '311' ],
+    'ejsk.grail.su' => ['186' => '312', '187' => '311'],
+    'korenovsk.grail.su' => ['185' => '312', '186' => '311'],
+    'kropotkin.grail.su' => ['185' => '312', '186' => '311'],
+    'krymsk.grail.su' => ['185' => '312', '186' => '311'],
+    'kurganinsk.grail.su' => ['185' => '312', '186' => '311'],
+    'labinsk.grail.su' => ['185' => '312', '186' => '311'],
+    'majkop.grail.su' => ['185' => '312', '186' => '311'],
+    'novorossijsk.grail.su' => ['195' => '312', '196' => '311'],
+    'slavyansk-na-kubani.grail.su' => ['185' => '312', '186' => '311'],
+    'sochi.grail.su' => ['187' => '312', '188' => '311'],
+    'temruk.grail.su' => ['185' => '312', '186' => '311'],
+    'timashevsk.grail.su' => ['185' => '312', '186' => '311'],
+    'tihoreck.grail.su' => ['185' => '312', '186' => '311'],
+    'tuapse.grail.su' => ['186' => '312', '187' => '311'],
+  ];
+  
+  $temp_serverName = strtok($_SERVER['SERVER_NAME'], ':');
+  if (array_key_exists($temp_serverName, $subdomains) && !empty($subdomains[$temp_serverName]) && array_key_exists($form_id, $subdomains[$temp_serverName])){
+    $log ? $log->write('Main: проверка переназначения id формы: SERVER_NAME = '.$temp_serverName.' - успех, '.$form_id.' => '.$subdomains[$temp_serverName]) : null ;
+    $form_id = $subdomains[$temp_serverName][$form_id];
+  } else {
+    $log ? $log->write('Main: проверка переназначения id формы: SERVER_NAME = '.$temp_serverName.' - неудача, используем оригинальный маппинг') : null ;
+  }
+  unset($temp_serverName);
+  
   // проверяем, не заблокирована ли форма
   if (in_array($form_id, $blocked)){
     $log ? $log->write('Main: обращение из заблокированной формы id'.$form_id.': '.print_r($values, true)) : null ;
@@ -149,7 +182,7 @@ function cf7_AmoCRM_Integration($cf7){
 
         $message = 'Форма не распознана, полученные значения:' . PHP_EOL . PHP_EOL;
         foreach ($values as $values_index => $values_data) {
-            $message .= "['$values_index'] = " . $amoUtils->parseValue($values_data) . PHP_EOL;
+      $message .= "['$values_index'] = ".$amoUtils->parseValue(false, $values_data).PHP_EOL;
         }
         $message .= 'Форма "' . $form_id . '"' . PHP_EOL;
 
@@ -158,9 +191,9 @@ function cf7_AmoCRM_Integration($cf7){
 
         // пытаемся найти телефон
         if (isset($values['field_phone'])) {
-            $phone = $amoUtils->parseValue($values['field_phone']);
+      $phone = $amoUtils->parseValue(false, $values['field_phone']);
         } else if (isset($values['phone'])) {
-            $phone = $amoUtils->parseValue($values['phone']);
+      $phone = $amoUtils->parseValue(false, $values['phone']);
         }
         if ($phone) {
             $amoUtils->setPhone($phone);
@@ -196,6 +229,19 @@ function cf7_AmoCRM_Integration($cf7){
         // адреса наших пансионатов
         $amoUtils->setField('travelTo', str_replace(['hutor', 'srednyaya'], ['г. Краснодар, ул. Правобережная, д. 8', 'г. Краснодар, ул. Средняя, д. 43/5'], $amoUtils->getField('travelTo')));
     }
+    
+  // возраст зависимого
+  if ($amoUtils->getField('age')){
+    $old_arr = ['a1', 'a2', 'a3', 'a4', 'a5'];
+    $replace_arr = [
+      'от 14 до 18 лет',
+      'от 18 до 21 года',
+      'с 21 года до 30 лет',
+      'с 30 до 40 лет',
+      'выше 40 лет',
+    ];
+    $amoUtils->setField('age', str_replace($old_arr, $replace_arr, $amoUtils->getField('age')));
+  }
 
     // здесь отправка
     if (!$demo) {

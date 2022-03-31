@@ -241,7 +241,7 @@ class HDDenAmoUtils {
           } else if (isset($data[0]['value'])){
             $result .= $data[0]['value'];
           } else if (isset($data[0]['target_id'])){
-            if ($form_state){
+            if ($form_state && $field_name){
               $target_ids = $form_state
                 ->getFormObject()
                 ->getEntity()
