@@ -50,7 +50,7 @@ function amowebformoauth_webform_submission_insert($node, $submission){
       'phone' => '2',
       'email' => '3',
       'message' => '4',
-      'tags' => ['lead' => ['site.su'], 'contact' => ['Конакт из site.su']],
+      'tags' => ['lead' => ['site.su'], 'contact' => ['Контакт из site.su']],
       'formName' => 'Есть вопросы?',
     ],
     '50' => [
@@ -145,7 +145,7 @@ function amowebformoauth_webform_submission_insert($node, $submission){
         }
         // теги контакта
         if (isset($formFieldName['contact'])) {
-          $amoUtils->addLeadTags($formFieldName['contact']);
+          $amoUtils->addContactTags($formFieldName['contact']);
         }
         // переходим к следующему полю
         continue;
@@ -254,6 +254,9 @@ function amowebformoauth_webform_submission_insert($node, $submission){
 
     // адреса наших пансионатов
     $amoUtils->setField('travelTo', str_replace(['hutor', 'srednyaya'], ['г. Краснодар, ул. Правобережная, д. 8', 'г. Краснодар, ул. Средняя, д. 43/5'], $amoUtils->getField('travelTo')));
+    
+    // Мультиселект - просто название чекбокса
+    $amoUtils->setField('testtttsrc', 'Опция 1');
   }
   
   // возраст зависимого

@@ -27,6 +27,12 @@ use League\OAuth2\Client\Token\AccessTokenInterface;
 use AmoCRM\Models\CustomFieldsValues\SelectCustomFieldValuesModel;
 use AmoCRM\Models\CustomFieldsValues\ValueCollections\SelectCustomFieldValueCollection;
 use AmoCRM\Models\CustomFieldsValues\ValueModels\SelectCustomFieldValueModel;
+use AmoCRM\Models\CustomFieldsValues\CheckboxCustomFieldValuesModel;
+use AmoCRM\Models\CustomFieldsValues\ValueCollections\CheckboxCustomFieldValueCollection;
+use AmoCRM\Models\CustomFieldsValues\ValueModels\CheckboxCustomFieldValueModel;
+use AmoCRM\Models\CustomFieldsValues\MultiselectCustomFieldValuesModel;
+use AmoCRM\Models\CustomFieldsValues\ValueCollections\MultiselectCustomFieldValueCollection;
+use AmoCRM\Models\CustomFieldsValues\ValueModels\MultiselectCustomFieldValueModel;
 
 use AmoCRM\Filters\TagsFilter;
 use AmoCRM\Collections\TagsCollection;
@@ -61,7 +67,25 @@ class amoCRM
       //Добавим значения
       $сustomFieldValuesModel->setValues(
         (new SelectCustomFieldValueCollection())
-            ->add((new SelectCustomFieldValueModel())->setValue($value)) //Текст должен совпадать с одним из значений поля статус
+            ->add((new SelectCustomFieldValueModel())->setValue($value))
+      );
+
+    } else if ($type == 'checkbox') {
+      
+      $сustomFieldValuesModel = new CheckboxCustomFieldValuesModel();
+      $сustomFieldValuesModel->setFieldId($id);
+      $сustomFieldValuesModel->setValues(
+        (new CheckboxCustomFieldValueCollection())
+            ->add((new CheckboxCustomFieldValueModel())->setValue($value)) //Текст должен совпадать с одним из значений поля статус
+      );
+
+    } else if ($type == 'multiselect') {
+
+      $сustomFieldValuesModel = new MultiselectCustomFieldValuesModel();
+      $сustomFieldValuesModel->setFieldId($id);
+      $сustomFieldValuesModel->setValues(
+        (new MultiselectCustomFieldValueCollection())
+            ->add((new MultiselectCustomFieldValueModel())->setValue($value)) //Текст должен совпадать с одним из значений поля статус
       );
 
     } else {
@@ -211,15 +235,21 @@ class amoCRM
       $contact->setName($importedLeadData_name);
 
       $CustomFieldsValues = new CustomFieldsValuesCollection();
-      $emailField = (new MultitextCustomFieldValuesModel())->setFieldCode('EMAIL');
-      $emailField->setValues((new MultitextCustomFieldValueCollection())->add((new MultitextCustomFieldValueModel())->setEnum('WORK')->setValue($importedLeadData_email)));
-      $phoneField = (new MultitextCustomFieldValuesModel())->setFieldCode('PHONE');
-      $phoneField->setValues((new MultitextCustomFieldValueCollection())->add((new MultitextCustomFieldValueModel())->setEnum('WORK')->setValue($importedLeadData_phone)));
+      if (isset($importedLeadData_email) && $importedLeadData_email){
+        $emailField = (new MultitextCustomFieldValuesModel())->setFieldCode('EMAIL');
+        $emailField->setValues((new MultitextCustomFieldValueCollection())->add((new MultitextCustomFieldValueModel())->setEnum('WORK')->setValue($importedLeadData_email)));
+        $CustomFieldsValues->add($emailField);
+      }
 
-      $CustomFieldsValues->add($emailField);
-      $CustomFieldsValues->add($phoneField);
+      if (isset($importedLeadData_phone) && $importedLeadData_phone){
+        $phoneField = (new MultitextCustomFieldValuesModel())->setFieldCode('PHONE');
+        $phoneField->setValues((new MultitextCustomFieldValueCollection())->add((new MultitextCustomFieldValueModel())->setEnum('WORK')->setValue($importedLeadData_phone)));
+        $CustomFieldsValues->add($phoneField);
+      }
 
-      $contact->setCustomFieldsValues($CustomFieldsValues);
+      if ( (isset($importedLeadData_email) && $importedLeadData_email) || (isset($importedLeadData_phone) && $importedLeadData_phone) ){
+        $contact->setCustomFieldsValues($CustomFieldsValues);
+      }
 
       // Назначим теги контакту
       if (isset($tagsCollection_contact)) $contact->setTags($tagsCollection_contact);
@@ -252,6 +282,11 @@ class amoCRM
     // адрес сайта
     if (isset($importedLeadData_sitename) && $importedLeadData_sitename){
       $CustomFieldsValues->add($this->createFieldValue($importedLeadData_sitename, 'text', 413083));
+    }
+    
+    // если источник выбирается чекбоксом
+    if (isset($importedLeadData_srcCheckbox) && $importedLeadData_srcCheckbox){
+      $CustomFieldsValues->add($this->createFieldValue($importedLeadData_srcCheckbox, 'multiselect', 969401));
     }
 
     // Страница обращения
