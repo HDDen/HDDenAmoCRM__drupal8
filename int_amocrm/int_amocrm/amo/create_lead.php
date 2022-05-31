@@ -143,8 +143,12 @@ class amoCRM
           // Запрашиваем теги контактов по нашему запросу
           $tag_data = $apiClient->tags(EntityTypesInterface::CONTACTS)->get($tagsFilter);
 
-          // берем первый тег из результата. По идее, он должен быть единственным
-          $tag = $tag_data->first();
+          // ищем наш
+          $tag = $tag_data->getBy('name', $contact_tag_value);
+
+          if(!$tag){
+          	throw new AmoCRMApiException("Tag isn't exists");
+          }
 
         } catch (AmoCRMApiException $e) {
 
@@ -190,8 +194,12 @@ class amoCRM
           // Запрашиваем теги контактов по нашему запросу
           $tag_data = $apiClient->tags(EntityTypesInterface::LEADS)->get($tagsFilter);
 
-          // берем первый тег из результата. По идее, он должен быть единственным
-          $tag = $tag_data->first();
+          // ищем наш
+          $tag = $tag_data->getBy('name', $lead_tag_value);
+
+          if(!$tag){
+	          throw new AmoCRMApiException("Tag isn't exists");
+          }
 
         } catch (AmoCRMApiException $e) {
 

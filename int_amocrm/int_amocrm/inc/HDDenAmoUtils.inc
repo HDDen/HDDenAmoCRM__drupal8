@@ -109,6 +109,16 @@ class HDDenAmoUtils {
   }
 
   /**
+   * Устанавливает sitename
+   * @param $sitename
+   */
+  public function setSitename($sitename){
+	if ($sitename){
+		$this->sitename = $sitename;
+	}
+  }
+
+  /**
    * Устанавливает значение массива $formData
    * @param $fieldName
    * @param $value
