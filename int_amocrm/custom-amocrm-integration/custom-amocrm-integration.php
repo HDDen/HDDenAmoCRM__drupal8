@@ -4,6 +4,7 @@ Plugin Name: Custom AmoCRM integration
 Description: Интеграция сайта с AmoCRM, используя OAuth
 Version: 2.0
 Author: HDDen (madmen.bz)
+Requires PHP: 7.4
 */
 
 require_once 'inc/HDDenAmoUtils.inc';
