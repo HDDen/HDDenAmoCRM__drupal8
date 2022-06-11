@@ -159,6 +159,7 @@ function int_amocrm_submitCbk(&$form, \Drupal\Core\Form\FormStateInterface $form
               }
             }
 
+            // в drupal 8+ передаём еще $form_state
             $val = $amoUtils->parseValue($formFieldName, $values[$part_name], $drupal7_tryfield, $form_state);
             $amoUtils->setField($amoFieldName, $val, true);
           }

@@ -147,7 +147,7 @@ function cf7_AmoCRM_Integration($cf7){
               }
             }
 
-            $val = $amoUtils->parseValue($formFieldName, $values[$part_name], $drupal7_tryfield, $form_state);
+            $val = $amoUtils->parseValue($formFieldName, $values[$part_name], $drupal7_tryfield);
             $amoUtils->setField($amoFieldName, $val, true);
           }
         }
@@ -207,11 +207,9 @@ function cf7_AmoCRM_Integration($cf7){
 
   // продолжение выбора воронки
   if (array_key_exists($_SERVER['SERVER_NAME'], $pipelines)) {
-
       $log ? $log->write('Main: устаналиваем воронку от ' . $_SERVER['SERVER_NAME'] . ' с id: ' . $pipelines['default']) : null;
       $amoUtils->setPipelineId($pipelines[$_SERVER['SERVER_NAME']]);
   } else if (isset($pipelines['default'])) {
-
       $log ? $log->write('Main: устаналиваем дефолтную воронку с id: ' . $pipelines['default']) : null;
       $amoUtils->setPipelineId($pipelines['default']);
   }

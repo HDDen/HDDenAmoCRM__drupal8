@@ -36,14 +36,14 @@ class HDDenAmoUtils {
       $this->formData = $formData;
 
       // установим sitename
-      if (@$this->formData['sitename']){
+      if (isset($this->formData['sitename']) && $this->formData['sitename']){
         $this->sitename = $this->formData['sitename'];
       } else {
         $this->sitename = $_SERVER['SERVER_NAME'];
       }
 
       // проверяем существование имени
-      if (!(@$this->formData['name'])){
+      if (!(isset($this->formData['name']) && $this->formData['name'])){
         $this->formData['name'] = $this->generateName(false);
       }
       $this->formData['name_uniqueized'] = $this->addMetainfToName($this->formData['name']);
@@ -94,7 +94,7 @@ class HDDenAmoUtils {
         $this->formData['message'] = $message;
       } else {
 
-        if (!(@$this->formData['message'])){
+        if (!(isset($this->formData['message']) && $this->formData['message'])){
           $this->formData['message'] = '';
         }
 
