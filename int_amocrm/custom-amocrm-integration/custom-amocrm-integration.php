@@ -13,8 +13,8 @@ require_once 'inc/HDDenDrupalSnippets.inc';
 require_once 'amo/create_lead.php';
 
 // Само получение данных
-add_action( 'wpcf7_before_send_mail', 'cf7_AmoCRM_Integration', 10, 1 );
-function cf7_AmoCRM_Integration($cf7){
+add_action( 'wpcf7_before_send_mail', 'cf7_AmoCRM_Integration', 10, 3 );
+function cf7_AmoCRM_Integration($cf7, &$abort, $object){
 
   // демо-режим
   $demo = false;
@@ -167,7 +167,7 @@ function cf7_AmoCRM_Integration($cf7){
             }
           }
 
-          $val = $amoUtils->parseValue($formFieldName, $values[$formFieldName], $drupal7_tryfield, $form_state);
+          $val = $amoUtils->parseValue($formFieldName, $values[$formFieldName], $drupal7_tryfield);
           $amoUtils->setField($amoFieldName, $val);
         }
       }
@@ -253,4 +253,17 @@ function cf7_AmoCRM_Integration($cf7){
   // возвращаем временную зону
   $oldTimezone = date_default_timezone_get();
   date_default_timezone_set($oldTimezone);
+
+  // возвращаем ответ
+  if ($result === false){
+    $abort = true;
+    $abort_msg = "Ошибка при отправке - пожалуйста, свяжитесь по телефону, либо в чате на сайте!".PHP_EOL.'(amo)'; //<- your custom error message
+  	//$msgs = $cf7->prop('messages');
+    //$msgs['mail_sent_ng'] = $abort_msg; //<- your custom error message
+  	//$cf7->set_properties(array('messages' => $msgs));
+    $object->set_response($abort_msg);
+  	return false;
+  } else {
+    return $result;
+  }
 }

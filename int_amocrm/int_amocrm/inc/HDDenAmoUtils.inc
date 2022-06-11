@@ -375,7 +375,14 @@ class HDDenAmoUtils {
     $amoCrm = new AmoCRM();
     $result = $amoCrm->add_lead($amo_array);
 
-    $this->log ? $this->log->write('Результат: '.PHP_EOL.var_export($result, true)) : false;
-    return true;
+    // возвращаемый результат
+	$returned_result = var_export($result, true);
+    $this->log ? $this->log->write('Результат: '.PHP_EOL.$returned_result) : false;
+
+    if ($result === false){
+    	return false;
+    } else {
+        return $returned_result;
+    }
   }
 }

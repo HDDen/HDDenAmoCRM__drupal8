@@ -167,7 +167,10 @@ class amoCRM
             $logdata = 'Ошибка: '.$e->getTitle().', код: '.$e->getCode().', текст ошибки:'.PHP_EOL.var_export($e->getLastRequestInfo(), true);
             $this->log ? $this->log->write($logdata) : false;
 
-            die;
+	    // trigger error
+            trigger_error($logdata, E_USER_WARNING);
+
+	    return false; //die;
           }
 
         }
@@ -218,7 +221,10 @@ class amoCRM
             $logdata = 'Ошибка: '.$e->getTitle().', код: '.$e->getCode().', текст ошибки:'.PHP_EOL.var_export($e->getLastRequestInfo(), true);
             $this->log ? $this->log->write($logdata) : false;
 
-            die;
+            // trigger error
+            trigger_error($logdata, E_USER_WARNING);
+
+	    return false; //die;
           }
 
         }
@@ -270,7 +276,10 @@ class amoCRM
         $logdata = 'Ошибка: '.$e->getTitle().', код: '.$e->getCode().', текст ошибки:'.PHP_EOL.var_export($e->getLastRequestInfo(), true);
         $this->log ? $this->log->write($logdata) : false;
 
-        die;
+        // trigger error
+	trigger_error($logdata, E_USER_WARNING);
+
+	return false; //die;
       }
     }
 
@@ -423,7 +432,10 @@ class amoCRM
           $logdata = 'Ошибка: '.$e->getTitle().', код: '.$e->getCode().', текст ошибки:'.PHP_EOL.var_export($e->getLastRequestInfo(), true);
           $this->log ? $this->log->write($logdata) : false;
 
-          die;
+	  // trigger error
+	  trigger_error($logdata, E_USER_WARNING);
+
+          return false; //die;
         }
 
         $links = new LinksCollection();
@@ -436,7 +448,10 @@ class amoCRM
           $logdata = 'Ошибка: '.$e->getTitle().', код: '.$e->getCode().', текст ошибки:'.PHP_EOL.var_export($e->getLastRequestInfo(), true);
           $this->log ? $this->log->write($logdata) : false;
 
-          die;
+	  // trigger error
+	  trigger_error($logdata, E_USER_WARNING);
+
+	  return false; //die;
         }
       }
 
@@ -456,7 +471,10 @@ class amoCRM
           $logdata = 'Ошибка: '.$e->getTitle().', код: '.$e->getCode().', текст ошибки:'.PHP_EOL.var_export($e->getLastRequestInfo(), true);
           $this->log ? $this->log->write($logdata) : false;
 
-          die;
+          // trigger error
+	  trigger_error($logdata, E_USER_WARNING);
+
+          return false; //die;
         }
       }
       $this->log ? $this->log->write('Success! Отправлено.') : false;
@@ -467,7 +485,10 @@ class amoCRM
       $logdata = 'Ошибка: '.$e->getTitle().', код: '.$e->getCode().', текст ошибки:'.PHP_EOL.var_export($e->getLastRequestInfo(), true);
       $this->log ? $this->log->write($logdata) : false;
 
-      die;
+      // trigger error
+      trigger_error($logdata, E_USER_WARNING);
+
+      return false; //die;
     }
 
   }
