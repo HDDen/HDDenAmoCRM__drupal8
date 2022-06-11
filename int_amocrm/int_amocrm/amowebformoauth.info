@@ -1,5 +1,5 @@
 name = amoWebformOAuth
 core = 7.x
-version = "7.x-2.0"
+version = "7.x-2.0.1"
 description = "Кастомная интеграция с amocrm, используя OAuth."
 php = 7.4

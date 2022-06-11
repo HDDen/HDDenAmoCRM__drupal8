@@ -2,7 +2,7 @@
 /*
 Plugin Name: Custom AmoCRM integration
 Description: Интеграция сайта с AmoCRM, используя OAuth
-Version: 2.0
+Version: 2.0.1
 Author: HDDen (madmen.bz)
 Requires PHP: 7.4
 */
